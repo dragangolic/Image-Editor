@@ -5,36 +5,6 @@ import os
 from PyQt5.QtGui import QPixmap
 
 
-with Image.open("urubamba.jpg")as pic:
-    #pic.show()
-
-    saturate = ImageEnhance.Color(pic)
-    saturate = saturate.enhance(1.2)
-
-    #saturate.show()
-
-    black_white = pic.convert("L")
-    black_white.save("gray_urubamba.jpg")
-    #black_white.show()
-
-    mirror = pic.transpose(Image.FLIP_LEFT_RIGHT)
-    mirror.save("mirror_urubamba.jpg")
-    #mirror.show()
-
-    blur = pic.filter(ImageFilter.BLUR)
-    blur.save("blur_urubamba.jpg")
-    #blur.show()
-
-    # ImageEnhance
-    contrast = ImageEnhance.Contrast(pic)
-    contrast = contrast.enhance(2.5)
-    contrast.save("contrast_urubamba.jpg")
-    #contrast.show()
-
-    color = ImageEnhance.Color(pic).enhance(2.7)
-    color.save("color_urubamba.jpg")
-    #color.show()
-
 # App Settings
 app = QApplication([])
 main_window = QWidget()
@@ -121,7 +91,7 @@ def getWorkDirectory():
         file_list.addItem(filename)
 
 
-class Editor():
+class Editor:
     def __init__(self):
         self.image = None
         self.original = None
@@ -150,41 +120,58 @@ class Editor():
         picture_box.setPixmap(image)
         picture_box.show()
 
-    def gray(self):
-        self.image = self.image.convert("L")
+    def transformimage(self, transformation):
+        transformations = {
+                "Left": lambda image: image.transpose(Image.Transpose.ROTATE_90),
+                "Right": lambda image: image.transpose(Image.Transpose.ROTATE_270),
+                "Mirror": lambda image: image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+                "Sharpen": lambda image: image.filter(ImageFilter.SHARPEN),
+                "B/W": lambda image: image.convert("L"),
+                "Color": lambda image: ImageEnhance.Color(image).enhance(1.2),
+                "Contrast": lambda image: ImageEnhance.Contrast(image).enhance(1.2),
+                "Blur": lambda image: image.filter(ImageFilter.BLUR)
+        }
+
+        transform_function = transformations.get(transformation)
+        if transform_function:
+            self.image = transform_function(self.image)
+            self.save_image()
         self.save_image()
         image_path = os.path.join(working_directory, self.save_folder, self.filename)
         self.show_image(image_path)
 
-    def left(self):
-        self.image = self.image.transpose(Image.ROTATE_90)
+
+    def apply_filter(self, filter_name):
+        if filter_name == "Original":
+            self.image = self.original.copy()
+        else:
+            mapping = {
+                "Left": lambda image: image.transpose(Image.Transpose.ROTATE_90),
+                "Right": lambda image: image.transpose(Image.Transpose.ROTATE_270),
+                "Mirror": lambda image: image.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+                "Sharpen": lambda image: image.filter(ImageFilter.SHARPEN),
+                "B/W": lambda image: image.convert("L"),
+                "Color": lambda image: ImageEnhance.Color(image).enhance(1.2),
+                "Contrast": lambda image: ImageEnhance.Contrast(image).enhance(1.2),
+                "Blur": lambda image: image.filter(ImageFilter.BLUR)
+            }
+            filter_function = mapping.get(filter_name)
+            # check if there is a value
+            if filter_function:
+                self.image = filter_function(self.image)
+                self.save_image()
+                image_path = os.path.join(working_directory, self.save_folder, self.filename)
+                self.show_image(image_path)
+            pass
         self.save_image()
         image_path = os.path.join(working_directory, self.save_folder, self.filename)
         self.show_image(image_path)
 
-    def right(self):
-        self.image = self.image.transpose(Image.ROTATE_270)
-        self.save_image()
-        image_path = os.path.join(working_directory, self.save_folder, self.filename)
-        self.show_image(image_path)
 
-    def mirror(self):
-        self.image = self.image.transpose(Image.FLIP_LEFT_RIGHT)
-        self.save_image()
-        image_path = os.path.join(working_directory, self.save_folder, self.filename)
-        self.show_image(image_path)
-
-    def sharpen(self):
-        self.image = self.image.filter(ImageFilter.SHARPEN)
-        self.save_image()
-        image_path = os.path.join(working_directory, self.save_folder, self.filename)
-        self.show_image(image_path)
-
-    def color(self):
-        self.image = self.image.Color(self).enhance(2.7)
-        self.save_image()
-        image_path = os.path.join(working_directory, self.save_folder, self.filename)
-        self.show_image(image_path)
+def handle_filter():
+    if file_list.currentRow() >= 0:
+        select_filter = filter_box.currentText()
+        main.apply_filter(select_filter)
 
 
 def displayImage():
@@ -196,13 +183,19 @@ def displayImage():
 
 main = Editor()
 
+# Events
 btn_folder.clicked.connect(getWorkDirectory)
 file_list.currentRowChanged.connect(displayImage)
+filter_box.currentTextChanged.connect(handle_filter)
 
-gray.clicked.connect(main.gray)
-btn_left.clicked.connect(main.left)
-btn_right.clicked.connect(main.right)
-sharpness.clicked.connect(main.sharpen)
+btn_left.clicked.connect(lambda: main.transformimage("Left"))
+btn_right.clicked.connect(lambda: main.transformimage("Right"))
+mirror.clicked.connect(lambda: main.transformimage("Mirror"))
+sharpness.clicked.connect(lambda: main.transformimage("Sharpen"))
+gray.clicked.connect(lambda: main.transformimage("Gray"))
+saturation.clicked.connect(lambda: main.transformimage("Color"))
+contrast.clicked.connect(lambda: main.transformimage("Contrast"))
+blur.clicked.connect(lambda: main.transformimage("Blur"))
 
 
 # Start/Execution
